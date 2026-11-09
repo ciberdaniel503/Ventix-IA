@@ -4,6 +4,7 @@ Interpreta consultas de clientes y genera respuestas inteligentes
 """
 
 import re
+import unicodedata
 from typing import Dict, List, Optional, Tuple
 from modules.catalogo import catalogo
 import logging
@@ -16,12 +17,25 @@ class InteligenciaNLP:
 
     def __init__(self):
         """Inicializa el sistema de IA."""
-        self.patron_presupuesto = re.compile(r'(\d+[\.,]?\d*)\s*(?:dólares?|usd|\$|euros?|€)?', re.IGNORECASE)
+        self.patron_presupuesto = re.compile(
+            r'(?<!\w)(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?!\w)'
+        )
         self.patron_categoria = {
             'computadora|computadoras|desktop|pc|torre': 'Computadoras',
             'laptop|notebook|portátil|portatil': 'Laptops',
             'celular|celulares|móvil|movil|telefono|telefonos|smartphone': 'Celulares',
             'accesorio|accesorios|mouse|teclado|monitor|auricular|cargador': 'Accesorios'
+        }
+        self.palabras_ignoradas_busqueda = {
+            'quiero', 'comprar', 'compra', 'comprame', 'adquirir', 'agregar',
+            'agrega', 'añadir', 'anadir', 'anade', 'añade', 'carrito', 'al',
+            'una', 'uno', 'unos', 'unas', 'un', 'el', 'la', 'los', 'las',
+            'de', 'del', 'por', 'favor', 'me', 'gustaria', 'gustaría',
+            'podrias', 'podrías', 'puedes', 'puedo', 'dame', 'necesito',
+            'tienen', 'tiene', 'hay', 'disponible', 'disponibles', 'stock',
+            'existencias', 'cuanto', 'cuánto', 'cuesta', 'precio', 'vale',
+            'informacion', 'información', 'sobre', 'que', 'qué', 'es',
+            'compara', 'comparar', 'con', 'y'
         }
 
     def procesar_consulta(self, texto: str) -> Dict:
@@ -48,6 +62,7 @@ class InteligenciaNLP:
             'categoria': None,
             'presupuesto': None,
             'productos': [],
+            'compra_directa': False,
             'respuesta': ''
         }
 
@@ -62,26 +77,43 @@ class InteligenciaNLP:
         elif intencion == 'presupuesto':
             resultado['presupuesto'] = self._extraer_presupuesto(texto)
             resultado['categoria'] = self._detectar_categoria(texto_lower)
-            resultado['productos'] = catalogo.recomendar_por_presupuesto(
-                resultado['presupuesto'],
-                resultado['categoria']
-            )
+            if resultado['presupuesto'] is not None:
+                resultado['productos'] = catalogo.recomendar_por_presupuesto(
+                    resultado['presupuesto'],
+                    resultado['categoria']
+                )
             resultado['respuesta'] = self._generar_respuesta_presupuesto(resultado)
 
         elif intencion == 'producto':
-            productos = catalogo.buscar(texto)
+            resultado['categoria'] = self._detectar_categoria(texto_lower)
+            productos, _ = self._buscar_productos_consulta(texto, resultado['categoria'])
             resultado['productos'] = productos
             resultado['respuesta'] = self._generar_respuesta_producto(productos)
 
         elif intencion == 'stock':
-            productos = catalogo.buscar(texto)
+            resultado['categoria'] = self._detectar_categoria(texto_lower)
+            productos, _ = self._buscar_productos_consulta(texto, resultado['categoria'])
             resultado['productos'] = productos
             resultado['respuesta'] = self._generar_respuesta_stock(productos)
 
         elif intencion == 'comparar':
-            productos = catalogo.buscar(texto)
+            resultado['categoria'] = self._detectar_categoria(texto_lower)
+            productos, _ = self._buscar_productos_consulta(
+                texto, resultado['categoria'], coincidir_cualquier_termino=True
+            )
             resultado['productos'] = productos[:3]  # Limitar a 3 productos
             resultado['respuesta'] = self._generar_respuesta_comparar(resultado['productos'])
+
+        elif intencion == 'compra':
+            resultado['categoria'] = self._detectar_categoria(texto_lower)
+            productos, compra_directa = self._buscar_productos_consulta(
+                texto, resultado['categoria']
+            )
+            resultado['productos'] = productos
+            resultado['compra_directa'] = compra_directa and len(productos) == 1
+            resultado['respuesta'] = self._generar_respuesta_compra(
+                productos, resultado['categoria'], resultado['compra_directa']
+            )
 
         elif intencion == 'saludo':
             resultado['respuesta'] = self._generar_respuesta_saludo()
@@ -96,25 +128,35 @@ class InteligenciaNLP:
 
     def _detectar_intencion(self, texto: str) -> str:
         """Detecta la intención del usuario."""
+        texto = self._normalizar_texto(texto)
+
         if any(palabra in texto for palabra in ['hola', 'buenos', 'buenas', 'hey', 'saludos']):
             return 'saludo'
 
-        if any(palabra in texto for palabra in ['ayuda', 'qué puedes', 'que puedes', 'opciones', 'comandos']):
+        if any(palabra in texto for palabra in ['ayuda', 'que puedes', 'opciones', 'comandos']):
             return 'ayuda'
 
-        if any(palabra in texto for palabra in ['catálogo', 'catalogo', 'productos', 'ver', 'mostrar']):
-            return 'catalogo'
+        if any(palabra in texto for palabra in ['comparar', 'compara', 'diferencia', 'cual es mejor']):
+            return 'comparar'
 
-        if any(palabra in texto for palabra in ['presupuesto', 'precio', 'menos de', 'hasta', 'máximo', 'maximo']):
+        if any(palabra in texto for palabra in ['presupuesto', 'menos de', 'hasta', 'maximo', 'dolares', 'usd', 'euros', '$', '€']):
             return 'presupuesto'
 
-        if any(palabra in texto for palabra in ['comparar', 'diferencia', 'cual es mejor', 'comparación']):
-            return 'comparar'
+        if re.search(r'\b\d+(?:[.,]\d+)?\b', texto) and any(
+            frase in texto for frase in ['puedo comprar', 'que puedo comprar', 'puedo gastar']
+        ):
+            return 'presupuesto'
+
+        if any(palabra in texto for palabra in ['comprar', 'compra', 'comprame', 'adquirir', 'agregar', 'agrega', 'anadir', 'anade']):
+            return 'compra'
+
+        if any(palabra in texto for palabra in ['catalogo', 'productos', 'ver', 'mostrar']):
+            return 'catalogo'
 
         if any(palabra in texto for palabra in ['stock', 'existencias', 'disponible', 'tienen', 'hay']):
             return 'stock'
 
-        if any(palabra in texto for palabra in ['cuánto', 'cuanto', 'precio', 'cuesta', 'vale']):
+        if any(palabra in texto for palabra in ['cuanto', 'precio', 'cuesta', 'vale']):
             return 'producto'
 
         # Por defecto, asumir búsqueda de producto
@@ -127,15 +169,112 @@ class InteligenciaNLP:
                 return categoria
         return None
 
+    @staticmethod
+    def _normalizar_texto(texto: str) -> str:
+        texto = unicodedata.normalize('NFD', texto.lower())
+        return ''.join(
+            caracter for caracter in texto
+            if unicodedata.category(caracter) != 'Mn'
+        )
+
+    def _buscar_productos_consulta(
+        self,
+        texto: str,
+        categoria: Optional[str] = None,
+        coincidir_cualquier_termino: bool = False
+    ) -> Tuple[List[Dict], bool]:
+        """Busca por palabras del nombre, ignorando frases de cortesía e intención."""
+        palabras_categoria = {
+            palabra
+            for patron in self.patron_categoria
+            for palabra in patron.split('|')
+        }
+        tokens = re.findall(r'\w+', self._normalizar_texto(texto))
+        terminos = [
+            token for token in tokens
+            if token not in self.palabras_ignoradas_busqueda
+            and token not in palabras_categoria
+        ]
+        terminos = [
+            ''.join(
+                caracter for caracter in unicodedata.normalize('NFD', termino)
+                if unicodedata.category(caracter) != 'Mn'
+            )
+            for termino in terminos
+        ]
+
+        if terminos:
+            consulta = set(terminos)
+            coincidencias_nombre = []
+            for producto in catalogo.obtener_todos():
+                nombre = self._normalizar_texto(producto['nombre'])
+                palabras_nombre = set(re.findall(r'\w+', nombre))
+                if consulta.issubset(palabras_nombre):
+                    coincidencias_nombre.append(producto)
+
+            if coincidencias_nombre:
+                return coincidencias_nombre, True
+
+            coincidencias = []
+            for producto in catalogo.obtener_todos():
+                texto_producto = self._normalizar_texto(
+                    f"{producto['nombre']} {producto['descripcion']} {producto['categoria']}"
+                )
+                if (
+                    any(termino in texto_producto for termino in terminos)
+                    if coincidir_cualquier_termino
+                    else all(termino in texto_producto for termino in terminos)
+                ):
+                    coincidencias.append(producto)
+            if coincidencias:
+                return coincidencias, False
+
+        if categoria:
+            return catalogo.obtener_por_categoria(categoria), False
+
+        return [], False
+
+    def _generar_respuesta_compra(
+        self, productos: List[Dict], categoria: Optional[str], compra_directa: bool
+    ) -> str:
+        if compra_directa:
+            producto = productos[0]
+            return f"Voy a agregar **{producto['nombre']}** a tu carrito."
+
+        if not productos:
+            return "¿Qué producto quieres comprar? Escribe su nombre del catálogo, por ejemplo: MacBook Air M2."
+
+        encabezado = "Para ayudarte a comprar, estas son las opciones disponibles"
+        if categoria:
+            encabezado += f" en {categoria}"
+        respuesta = f"📦 {encabezado}:\n\n"
+        for producto in productos[:5]:
+            respuesta += (
+                f"• {producto['nombre']} — ${producto['precio']:.2f} "
+                f"({producto['existencias']} disponibles)\n"
+            )
+        respuesta += "\nEscribe el nombre del producto que quieres agregar al carrito."
+        return respuesta
+
     def _extraer_presupuesto(self, texto: str) -> Optional[float]:
         """Extrae el presupuesto del texto."""
         coincidencias = self.patron_presupuesto.findall(texto)
         if coincidencias:
             try:
-                # Limpiar el número (eliminar comas, puntos de miles)
-                numero = coincidencias[0].replace(',', '').replace('.', '')
+                numero = coincidencias[0]
+                if ',' in numero and '.' in numero:
+                    separador_decimal = ',' if numero.rfind(',') > numero.rfind('.') else '.'
+                    separador_miles = '.' if separador_decimal == ',' else ','
+                    numero = numero.replace(separador_miles, '').replace(separador_decimal, '.')
+                elif ',' in numero or '.' in numero:
+                    separador = ',' if ',' in numero else '.'
+                    partes = numero.split(separador)
+                    if len(partes) > 2 or len(partes[-1]) == 3:
+                        numero = ''.join(partes)
+                    else:
+                        numero = separador.join(partes).replace(separador, '.')
                 return float(numero)
-            except:
+            except ValueError:
                 return None
         return None
 
@@ -166,6 +305,9 @@ class InteligenciaNLP:
         productos = resultado['productos']
         presupuesto = resultado['presupuesto']
         categoria = resultado['categoria']
+
+        if presupuesto is None:
+            return "¿Cuál es tu presupuesto? Por ejemplo: “Tengo 1000 dólares, ¿qué puedo comprar?”"
 
         if not productos:
             return f"No encontré productos dentro de tu presupuesto de ${presupuesto:.2f}. " \
@@ -225,7 +367,7 @@ class InteligenciaNLP:
     def _generar_respuesta_comparar(self, productos: List[Dict]) -> str:
         """Genera respuesta para comparar productos."""
         if len(productos) < 2:
-            return "Necesito al menos 2 productos para comparar. ¿Podrías mencionar más productos?"
+            return "¿Qué dos productos quieres comparar? Por ejemplo: “Compara iPhone y Samsung”."
 
         respuesta = "⚖️ **Comparación de Productos**\n\n"
 

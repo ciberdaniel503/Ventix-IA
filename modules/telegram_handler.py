@@ -44,6 +44,16 @@ class TelegramHandler:
                 'intencion': resultado['intencion']
             }
 
+            if resultado['intencion'] == 'compra':
+                if resultado['compra_directa']:
+                    producto = resultado['productos'][0]
+                    return self.agregar_producto_carrito(user_id, producto['id'])
+                return resultado['respuesta']
+
+            texto_normalizado = inteligencia._normalizar_texto(texto)
+            if 'carrito' in texto_normalizado.split():
+                return self._comando_carrito(user_id)
+
             return resultado['respuesta']
 
         except Exception as e:
@@ -102,7 +112,8 @@ class TelegramHandler:
         mensaje += "• \"Productos hasta $500\"\n"
         mensaje += "• \"¿Cuánto cuesta el iPhone?\"\n"
         mensaje += "• \"Compara MacBook y HP\"\n"
-        mensaje += "• \"¿Tienen stock de monitores?\""
+        mensaje += "• \"¿Tienen stock de monitores?\"\n"
+        mensaje += "• \"Quiero comprar MacBook Air M2\" (lo agrega al carrito)"
         return mensaje
 
     def _comando_catalogo(self) -> str:
