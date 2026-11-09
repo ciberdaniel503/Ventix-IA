@@ -1,0 +1,120 @@
+{
+  "productos": [
+    {
+      "id": "P001",
+      "nombre": "Laptop HP Pavilion 15",
+      "categoria": "Laptops",
+      "precio": 899.99,
+      "existencias": 15,
+      "descripcion": "Laptop HP Pavilion 15.6\" con Intel Core i5, 8GB RAM, 256GB SSD",
+      "especificaciones": {
+        "procesador": "Intel Core i5-1235U",
+        "ram": "8GB DDR4",
+        "almacenamiento": "256GB SSD",
+        "pantalla": "15.6\" Full HD",
+        "sistema_operativo": "Windows 11"
+      }
+    },
+    {
+      "id": "P002",
+      "nombre": "MacBook Air M2",
+      "categoria": "Laptops",
+      "precio": 1199.99,
+      "existencias": 8,
+      "descripcion": "Apple MacBook Air con chip M2, 8GB RAM, 256GB SSD",
+      "especificaciones": {
+        "procesador": "Apple M2",
+        "ram": "8GB",
+        "almacenamiento": "256GB SSD",
+        "pantalla": "13.6\" Liquid Retina",
+        "sistema_operativo": "macOS"
+      }
+    },
+    {
+      "id": "P003",
+      "nombre": "Desktop Dell Inspiron",
+      "categoria": "Computadoras",
+      "precio": 749.99,
+      "existencias": 12,
+      "descripcion": "Desktop Dell Inspiron con Intel Core i7, 16GB RAM, 512GB SSD",
+      "especificaciones": {
+        "procesador": "Intel Core i7-12700",
+        "ram": "16GB DDR4",
+        "almacenamiento": "512GB SSD",
+        "sistema_operativo": "Windows 11"
+      }
+    },
+    {
+      "id": "P004",
+      "nombre": "iPhone 15 Pro",
+      "categoria": "Celulares",
+      "precio": 1099.99,
+      "existencias": 19,
+      "descripcion": "Apple iPhone 15 Pro con 256GB, chip A17 Pro",
+      "especificaciones": {
+        "pantalla": "6.1\" Super Retina XDR",
+        "almacenamiento": "256GB",
+        "procesador": "A17 Pro",
+        "camara": "48MP",
+        "bateria": "3274 mAh"
+      }
+    },
+    {
+      "id": "P005",
+      "nombre": "Samsung Galaxy S24",
+      "categoria": "Celulares",
+      "precio": 899.99,
+      "existencias": 17,
+      "descripcion": "Samsung Galaxy S24 con 256GB, Snapdragon 8 Gen 3",
+      "especificaciones": {
+        "pantalla": "6.2\" Dynamic AMOLED 2X",
+        "almacenamiento": "256GB",
+        "procesador": "Snapdragon 8 Gen 3",
+        "camara": "50MP",
+        "bateria": "4000 mAh"
+      }
+    },
+    {
+      "id": "P006",
+      "nombre": "Monitor LG 27\" 4K",
+      "categoria": "Accesorios",
+      "precio": 349.99,
+      "existencias": 25,
+      "descripcion": "Monitor LG UltraFine 27\" 4K UHD IPS",
+      "especificaciones": {
+        "pantalla": "27\" 4K UHD",
+        "resolucion": "3840 x 2160",
+        "tipo": "IPS",
+        "frecuencia": "60Hz"
+      }
+    },
+    {
+      "id": "P007",
+      "nombre": "Teclado Mecánico RGB",
+      "categoria": "Accesorios",
+      "precio": 89.99,
+      "existencias": 30,
+      "descripcion": "Teclado mecánico RGB con switches Cherry MX Red",
+      "especificaciones": {
+        "tipo": "Mecánico",
+        "switches": "Cherry MX Red",
+        "iluminacion": "RGB",
+        "conectividad": "USB"
+      }
+    },
+    {
+      "id": "P008",
+      "nombre": "Mouse Gaming Wireless",
+      "categoria": "Accesorios",
+      "precio": 69.99,
+      "existencias": 35,
+      "descripcion": "Mouse gaming inalámbrico con sensor óptico 16000 DPI",
+      "especificaciones": {
+        "sensor": "Optico 16000 DPI",
+        "conectividad": "Wireless 2.4GHz",
+        "bateria": "60 horas",
+        "botes": "20 millones"
+      }
+    }
+  ]
+}
