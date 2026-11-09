@@ -152,7 +152,7 @@ class TelegramHandler:
         """Comando /carrito - Ver carrito."""
         carrito = gestor_pedidos.obtener_carrito(user_id)
 
-        if not carrito or not carrito['items']:
+        if not carrito or not carrito.get('items'):
             return "🛒 Tu carrito está vacío.\n\nEscribe el nombre de un producto para agregarlo."
 
         mensaje = "🛒 **Tu Carrito**\n\n"

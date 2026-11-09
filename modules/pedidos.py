@@ -217,6 +217,9 @@ class GestorPedidos:
             for item in carrito["items"]:
                 catalogo.actualizar_existencias(item["producto_id"], -item["cantidad"])
 
+            # Recargar catálogo para mantener consistencia en memoria
+            catalogo.recargar()
+
             # Guardar pedido
             self.pedidos.append(pedido)
             if not persistencia.guardar_pedidos(self.pedidos):

@@ -16,6 +16,10 @@ class Catalogo:
         """Inicializa el catálogo."""
         self.productos = persistencia.cargar_productos()
 
+    def recargar(self):
+        """Recarga los productos desde el almacenamiento persistente."""
+        self.productos = persistencia.cargar_productos()
+
     def obtener_todos(self) -> List[Dict]:
         """Obtiene todos los productos."""
         return self.productos

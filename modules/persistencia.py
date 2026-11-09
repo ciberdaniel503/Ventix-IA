@@ -59,8 +59,18 @@ class PersistenciaGitHub:
             pass
 
         if self.github_token and self.github_repo:
-            self.github_enabled = True
-            logger.info("✅ GitHub persistence habilitado")
+            # Validar que el token funcione realmente antes de habilitar GitHub
+            try:
+                from github import Github
+
+                Github(self.github_token).get_user().login
+                self.github_enabled = True
+                logger.info("✅ GitHub persistence habilitado")
+            except Exception as e:
+                self.github_enabled = False
+                logger.warning(
+                    f"⚠️ GitHub token inválido ({e}) - usando almacenamiento local"
+                )
         else:
             logger.warning("⚠️ GitHub persistence no configurado - usando almacenamiento local")
 
