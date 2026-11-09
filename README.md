@@ -88,18 +88,18 @@ pip install -r requirements.txt
    export TELEGRAM_BOT_TOKEN="tu-token-aqui"
    ```
 
-### Configurar Sincronización GitHub (Opcional pero Recomendado)
+### Configurar Sincronización GitHub (Compartir datos entre el bot y Streamlit)
 
 1. **Crear token de acceso personal en GitHub:**
    - Ve a GitHub Settings → Developer settings → Personal access tokens
-   - Crea un nuevo token con permisos `repo`
+   - Crea un token con permiso de lectura y escritura de contenidos para el repositorio de datos
    - Copia el token
 
 2. **Crear repositorio en GitHub:**
    - Crea un nuevo repositorio para guardar los datos
-   - El repositorio debe ser público o privado según tu preferencia
+   - Se recomienda que sea privado, porque los carritos y pedidos contienen IDs de usuarios y datos de compra
 
-3. **Configurar secrets en Streamlit Community Cloud:**
+3. **Configurar el mismo acceso en ambos servicios:**
    - Ve a tu app en Streamlit Cloud
    - Settings → Secrets
    - Agrega los siguientes secrets:
@@ -109,6 +109,17 @@ pip install -r requirements.txt
    GITHUB_REPO = "usuario/nombre-repositorio"
    GITHUB_DATA_PATH = "data"  # Opcional, valor por defecto
    ```
+
+   - En Render, abre el servicio del bot y agrega las mismas variables en
+     **Environment**: `GITHUB_TOKEN`, `GITHUB_REPO` y `GITHUB_DATA_PATH`.
+   - `GITHUB_REPO` debe tener formato `usuario/repositorio`.
+   - Después de guardar las variables, reinicia o redepliega ambos servicios.
+
+   Ambos servicios deben usar el mismo repositorio y ruta. Las lecturas consultan
+   GitHub para compartir carritos y pedidos; las escrituras crean commits en ese
+   repositorio. Si el repositorio de datos también despliega la app automáticamente,
+   cada cambio en los datos puede iniciar un redeploy; para evitarlo, usa un
+   repositorio privado separado solo para datos.
 
 ### Configurar Panel Administrativo
 
@@ -175,7 +186,7 @@ VENTIX-AI/
 Asegúrate de que tu repositorio de GitHub contenga:
 - Todos los archivos del proyecto
 - El archivo `requirements.txt`
-- Los archivos JSON en `data/` (inicialmente vacíos o con datos de ejemplo)
+- El catálogo inicial `data/productos.json`
 
 ### 2. Crear App en Streamlit Cloud
 

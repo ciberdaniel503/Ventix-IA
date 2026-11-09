@@ -19,8 +19,15 @@ class GestorPedidos:
         self.pedidos = persistencia.cargar_pedidos()
         self.carritos = persistencia.cargar_carritos()
 
+    def _recargar_pedidos(self):
+        self.pedidos = persistencia.cargar_pedidos()
+
+    def _recargar_carritos(self):
+        self.carritos = persistencia.cargar_carritos()
+
     def crear_carrito(self, usuario_id: str) -> Dict:
         """Crea un nuevo carrito para un usuario."""
+        self._recargar_carritos()
         if usuario_id not in self.carritos:
             self.carritos[usuario_id] = {
                 "usuario_id": usuario_id,
@@ -34,13 +41,21 @@ class GestorPedidos:
 
     def obtener_carrito(self, usuario_id: str) -> Optional[Dict]:
         """Obtiene el carrito de un usuario."""
+        self._recargar_carritos()
         return self.carritos.get(usuario_id)
+
+    def obtener_todos_carritos(self) -> Dict:
+        """Obtiene los carritos activos desde el almacenamiento compartido."""
+        self._recargar_carritos()
+        return self.carritos
 
     def agregar_al_carrito(self, usuario_id: str, producto_id: str, cantidad: int = 1) -> bool:
         """
         Agrega un producto al carrito de un usuario.
         """
         try:
+            self._recargar_carritos()
+
             # Verificar producto existe
             producto = catalogo.obtener_por_id(producto_id)
             if not producto:
@@ -54,7 +69,11 @@ class GestorPedidos:
 
             # Crear carrito si no existe
             if usuario_id not in self.carritos:
-                self.crear_carrito(usuario_id)
+                self.carritos[usuario_id] = {
+                    "usuario_id": usuario_id,
+                    "items": [],
+                    "creado_en": datetime.now().isoformat()
+                }
 
             carrito = self.carritos[usuario_id]
 
@@ -63,7 +82,8 @@ class GestorPedidos:
                 if item["producto_id"] == producto_id:
                     item["cantidad"] += cantidad
                     item["subtotal"] = item["cantidad"] * producto["precio"]
-                    persistencia.guardar_carritos(self.carritos)
+                    if not persistencia.guardar_carritos(self.carritos):
+                        return False
                     logger.info(f"Cantidad actualizada en carrito: {producto_id}")
                     return True
 
@@ -76,7 +96,8 @@ class GestorPedidos:
                 "subtotal": cantidad * producto["precio"]
             })
 
-            persistencia.guardar_carritos(self.carritos)
+            if not persistencia.guardar_carritos(self.carritos):
+                return False
             logger.info(f"Producto agregado al carrito: {producto_id}")
             return True
 
@@ -87,6 +108,7 @@ class GestorPedidos:
     def eliminar_del_carrito(self, usuario_id: str, producto_id: str) -> bool:
         """Elimina un producto del carrito."""
         try:
+            self._recargar_carritos()
             if usuario_id not in self.carritos:
                 logger.error(f"Carrito no encontrado para usuario {usuario_id}")
                 return False
@@ -94,7 +116,8 @@ class GestorPedidos:
             carrito = self.carritos[usuario_id]
             carrito["items"] = [item for item in carrito["items"] if item["producto_id"] != producto_id]
 
-            persistencia.guardar_carritos(self.carritos)
+            if not persistencia.guardar_carritos(self.carritos):
+                return False
             logger.info(f"Producto eliminado del carrito: {producto_id}")
             return True
 
@@ -105,6 +128,7 @@ class GestorPedidos:
     def actualizar_cantidad_carrito(self, usuario_id: str, producto_id: str, cantidad: int) -> bool:
         """Actualiza la cantidad de un producto en el carrito."""
         try:
+            self._recargar_carritos()
             if usuario_id not in self.carritos:
                 return False
 
@@ -124,8 +148,7 @@ class GestorPedidos:
 
                     item["cantidad"] = cantidad
                     item["subtotal"] = cantidad * item["precio"]
-                    persistencia.guardar_carritos(self.carritos)
-                    return True
+                    return persistencia.guardar_carritos(self.carritos)
 
             return False
 
@@ -136,9 +159,11 @@ class GestorPedidos:
     def vaciar_carrito(self, usuario_id: str) -> bool:
         """Vacía el carrito de un usuario."""
         try:
+            self._recargar_carritos()
             if usuario_id in self.carritos:
                 self.carritos[usuario_id]["items"] = []
-                persistencia.guardar_carritos(self.carritos)
+                if not persistencia.guardar_carritos(self.carritos):
+                    return False
                 logger.info(f"Carrito vaciado para usuario {usuario_id}")
                 return True
             return False
@@ -172,7 +197,8 @@ class GestorPedidos:
                     logger.error(f"Existencias insuficientes para {item['producto_id']}")
                     return None
 
-            # Generar ID del pedido
+            # Generar ID del pedido con la lista compartida más reciente.
+            self._recargar_pedidos()
             pedido_id = self._generar_pedido_id()
 
             # Crear pedido
@@ -193,7 +219,8 @@ class GestorPedidos:
 
             # Guardar pedido
             self.pedidos.append(pedido)
-            persistencia.guardar_pedidos(self.pedidos)
+            if not persistencia.guardar_pedidos(self.pedidos):
+                return None
 
             # Vaciar carrito
             self.vaciar_carrito(usuario_id)
@@ -207,6 +234,7 @@ class GestorPedidos:
 
     def obtener_pedido(self, pedido_id: str) -> Optional[Dict]:
         """Obtiene un pedido por su ID."""
+        self._recargar_pedidos()
         for pedido in self.pedidos:
             if pedido["id"] == pedido_id:
                 return pedido
@@ -214,10 +242,12 @@ class GestorPedidos:
 
     def obtener_pedidos_usuario(self, usuario_id: str) -> List[Dict]:
         """Obtiene todos los pedidos de un usuario."""
+        self._recargar_pedidos()
         return [p for p in self.pedidos if p["usuario_id"] == usuario_id]
 
     def obtener_todos_pedidos(self) -> List[Dict]:
         """Obtiene todos los pedidos."""
+        self._recargar_pedidos()
         return self.pedidos
 
     def actualizar_estado_pedido(self, pedido_id: str, nuevo_estado: str) -> bool:
@@ -239,7 +269,8 @@ class GestorPedidos:
             pedido["estado"] = nuevo_estado
             pedido["actualizado_en"] = datetime.now().isoformat()
 
-            persistencia.guardar_pedidos(self.pedidos)
+            if not persistencia.guardar_pedidos(self.pedidos):
+                return False
             logger.info(f"Estado actualizado: {pedido_id} -> {nuevo_estado}")
             return True
 
@@ -249,6 +280,7 @@ class GestorPedidos:
 
     def obtener_pedidos_pendientes(self) -> List[Dict]:
         """Obtiene pedidos pendientes."""
+        self._recargar_pedidos()
         return [p for p in self.pedidos if p["estado"] == "pendiente"]
 
     def _generar_pedido_id(self) -> str:

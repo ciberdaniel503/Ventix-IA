@@ -4,6 +4,11 @@ Asistente inteligente de ventas automatizado
 """
 
 import logging
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -17,11 +22,6 @@ from modules.catalogo import catalogo
 from modules.pedidos import gestor_pedidos
 from modules.inteligencia import inteligencia
 from modules.telegram_handler import telegram_handler
-import os
-from dotenv import load_dotenv
-
-# Cargar variables de entorno desde .env
-load_dotenv()
 
 # Configurar logging
 logging.basicConfig(

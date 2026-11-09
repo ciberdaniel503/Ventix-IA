@@ -365,8 +365,15 @@ def pedidos_page():
     """Página de gestión de pedidos."""
     st.markdown("<h1>🛒 Gestión de Pedidos</h1>", unsafe_allow_html=True)
 
+    if st.button("🔄 Actualizar datos", key="actualizar_pedidos"):
+        st.rerun()
+
     # Tabs
-    tab1, tab2 = st.tabs(["📋 Todos los Pedidos", "⏳ Pedidos Pendientes"])
+    tab1, tab2, tab3 = st.tabs([
+        "📋 Todos los Pedidos",
+        "⏳ Pedidos Pendientes",
+        "🛍️ Carritos Activos"
+    ])
 
     with tab1:
         st.markdown("### Historial de Pedidos")
@@ -419,6 +426,45 @@ def pedidos_page():
                                 st.rerun()
         else:
             st.success("✅ No hay pedidos pendientes")
+
+    with tab3:
+        st.markdown("### Carritos activos de Telegram")
+        carritos = gestor_pedidos.obtener_todos_carritos()
+        carritos_activos = [
+            (usuario_id, carrito)
+            for usuario_id, carrito in carritos.items()
+            if carrito.get("items")
+        ]
+
+        if carritos_activos:
+            resumen_carritos = []
+            for usuario_id, carrito in carritos_activos:
+                items = carrito["items"]
+                resumen_carritos.append({
+                    "Usuario Telegram": usuario_id,
+                    "Productos": len(items),
+                    "Unidades": sum(item["cantidad"] for item in items),
+                    "Total": sum(item["subtotal"] for item in items),
+                    "Creado": carrito.get("creado_en", "")
+                })
+
+            st.dataframe(pd.DataFrame(resumen_carritos), width='stretch', hide_index=True)
+
+            for usuario_id, carrito in carritos_activos:
+                total = sum(item["subtotal"] for item in carrito["items"])
+                with st.expander(f"Carrito {usuario_id} - ${total:.2f}"):
+                    for item in carrito["items"]:
+                        st.markdown(
+                            f"• {item['nombre']} x{item['cantidad']} "
+                            f"- ${item['subtotal']:.2f}"
+                        )
+        else:
+            st.info("No hay carritos activos")
+
+        if persistencia.github_enabled:
+            st.caption("Los carritos se comparten con el bot mediante GitHub. Pulsa «Actualizar datos» para consultar los cambios recientes.")
+        else:
+            st.warning("GitHub Sync está inactivo. Los carritos solo están disponibles en esta instancia.")
 
 def ventas_page():
     """Página de gestión de ventas."""
