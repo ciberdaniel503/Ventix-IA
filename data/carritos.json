@@ -1,0 +1,56 @@
+{
+  "carritos": {
+    "demo_user_123": {
+      "usuario_id": "demo_user_123",
+      "items": [
+        {
+          "producto_id": "P002",
+          "nombre": "MacBook Air M2",
+          "precio": 1199.99,
+          "cantidad": 1,
+          "subtotal": 1199.99
+        },
+        {
+          "producto_id": "P007",
+          "nombre": "Teclado Mecánico RGB",
+          "precio": 89.99,
+          "cantidad": 1,
+          "subtotal": 89.99
+        }
+      ],
+      "creado_en": "2026-11-09T15:10:35.156965"
+    },
+    "demo_user_456": {
+      "usuario_id": "demo_user_456",
+      "items": [],
+      "creado_en": "2026-11-09T15:10:35.169639"
+    },
+    "8856053371": {
+      "usuario_id": "8856053371",
+      "items": [
+        {
+          "producto_id": "P002",
+          "nombre": "MacBook Air M2",
+          "precio": 1199.99,
+          "cantidad": 1,
+          "subtotal": 1199.99
+        },
+        {
+          "producto_id": "P004",
+          "nombre": "iPhone 15 Pro",
+          "precio": 1099.99,
+          "cantidad": 2,
+          "subtotal": 2199.98
+        },
+        {
+          "producto_id": "P005",
+          "nombre": "Samsung Galaxy S24",
+          "precio": 899.99,
+          "cantidad": 2,
+          "subtotal": 1799.98
+        }
+      ],
+      "creado_en": "2026-11-09T17:22:52.423064"
+    }
+  }
+}
